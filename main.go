@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -82,7 +83,7 @@ func handler(resp http.ResponseWriter, req *http.Request) {
 		log.Panicln(err)
 	}
 	if !pathInfo.IsDir() {
-		download(resp, pathFile)
+		download(resp, pathFile, pathInfo)
 		return
 	}
 	entries, err := pathFile.ReadDir(-1)
@@ -152,7 +153,10 @@ func login(w http.ResponseWriter, r *http.Request) bool {
 	return false
 }
 
-func download(resp http.ResponseWriter, path *os.File) {
+func download(resp http.ResponseWriter, path *os.File, stat os.FileInfo) {
+	headers := resp.Header()
+	headers["Content-Disposition"] = []string{"attachment"}
+	headers["Content-Length"] = []string{strconv.Itoa(int(stat.Size()))}
 	_, err := io.Copy(resp, path)
 	if err != nil {
 		log.Panicln(err)
