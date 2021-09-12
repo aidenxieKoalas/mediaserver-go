@@ -10,14 +10,21 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"sync"
+	"time"
 )
 
 var (
 	basePath = flag.String("path", "./", "base file path")
 	port     = flag.String("port", ":9081", "listen port")
 	username = flag.String("user", "", "username")
+	password = flag.String("password", "", "passwrod")
+	exts     = []string{".gif", ".png", ".jpg", ".tif", ".tiff", ".zip", ".rar", ".cbz", ".cbr", ".bmp", ".pdf", ".cgt"}
+	session  = sync.Map{}
+)
 
-	exts = []string{".gif", ".png", ".jpg", ".tif", ".tiff", ".zip", ".rar", ".cbz", ".cbr", ".bmp", ".pdf", ".cgt"}
+const (
+	CookieName string = "GOCOOKIE"
 )
 
 func init() {
@@ -40,6 +47,12 @@ func handler(resp http.ResponseWriter, req *http.Request) {
 	log.Println(req)
 	if http.MethodGet != req.Method && http.MethodHead != req.Method {
 		log.Panicln("only support get/head method")
+	}
+	if *username != "" && *password != "" {
+		needAuth := auth(resp, req)
+		if !needAuth {
+			return
+		}
 	}
 	path := req.URL.Path
 	if path == "" {
@@ -100,6 +113,39 @@ func handler(resp http.ResponseWriter, req *http.Request) {
 		}
 	}
 	render(resp, page)
+}
+
+func auth(response http.ResponseWriter, r *http.Request) bool {
+	cookie, err := r.Cookie(CookieName)
+	if err != nil {
+		if err != http.ErrNoCookie {
+			log.Panicln("cooke error")
+		}
+	}
+	if cookie == nil {
+		return login(response, r)
+	} else if _, ok := session.Load(cookie.Value); !ok {
+		return login(response, r)
+	}
+	return true
+}
+
+func login(w http.ResponseWriter, r *http.Request) bool {
+	q := r.URL.Query()
+	user := q.Get("username")
+	pass := q.Get("password")
+	now := time.Now()
+	if *username == user && *password == pass {
+		ck := &http.Cookie{
+			Name:    CookieName,
+			Value:   *username,
+			Expires: now.AddDate(0, 0, 1),
+		}
+		http.SetCookie(w, ck)
+		session.Store(*username, now)
+		return true
+	}
+	return false
 }
 
 func download(resp http.ResponseWriter, path *os.File) {
