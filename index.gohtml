@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
+    <title>{{.CurrentPath}}</title>
+</head>
+<h3>{{.CurrentPath}}</h3>
+<ul>
+    {{range .DirEntries}}
+        {{if .DirEntry.IsDir}}
+            <li type="circle">
+                <a href="{{.Path}}" bookdate="{{.BookDate}}">{{.DirEntry.Name}}
+                </a>
+            </li>
+        {{else}}
+            <li><a href="{{.Path}}" booktitle="{{.DirEntry.Name}}" booksize="{{.DirEntry.Info.Size}}"
+                   bookdate="{{.BookDate}}" bookfile="true">{{.DirEntry.Name}}</a></li>
+        {{end}}
+    {{end}}
+</ul>
+</html>
