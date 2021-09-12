@@ -23,6 +23,10 @@ var (
 	session  = sync.Map{}
 )
 
+type WebHandlers struct {
+	handlers []http.Handler
+}
+
 const (
 	CookieName string = "GOCOOKIE"
 )
